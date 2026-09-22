@@ -178,9 +178,7 @@ class ReflectScreen extends StatelessWidget {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => const WriteScreen(),
-                          ),
+                          _slideRoute(const WriteScreen()),
                         );
                       },
                       child: Container(
@@ -215,6 +213,24 @@ class ReflectScreen extends StatelessWidget {
     );
   }
 
+  // Fungsi bantuan untuk animasi transisi
+  Route _slideRoute(Widget page) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(1.0, 0.0);
+        const end = Offset.zero;
+        const curve = Curves.easeInOutCubic;
+        var tween = Tween(
+          begin: begin,
+          end: end,
+        ).chain(CurveTween(curve: curve));
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
+      transitionDuration: const Duration(milliseconds: 400),
+    );
+  }
+
   Widget _buildJournalList() {
     final box = Hive.box<JournalEntry>('journalBox');
 
@@ -230,7 +246,7 @@ class ReflectScreen extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                'Belum ada jurnal. Tekan + untuk mulai menulis.',
+                'Belum ada jurnal. Buat baru sekarang.  ',
                 style: TextStyle(color: textSecondary),
               ),
             ),
@@ -332,10 +348,7 @@ class ReflectScreen extends StatelessWidget {
   Widget _buildJournalCard(BuildContext context, JournalEntry entry) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => DetailScreen(entry: entry)),
-        );
+        Navigator.push(context, _slideRoute(DetailScreen(entry: entry)));
       },
       child: Container(
         width: double.infinity,
@@ -385,9 +398,35 @@ class ReflectScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        entry.date,
-                        style: TextStyle(color: textSecondary, fontSize: 12),
+                      Row(
+                        children: [
+                          Text(
+                            entry.date,
+                            style: TextStyle(
+                              color: textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: textSecondary.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              entry.mood,
+                              style: TextStyle(
+                                color: textSecondary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       Icon(
                         Icons.bookmark_border,

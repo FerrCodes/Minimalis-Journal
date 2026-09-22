@@ -21,13 +21,14 @@ class JournalEntryAdapter extends TypeAdapter<JournalEntry> {
       content: fields[1] as String,
       date: fields[2] as String,
       imageUrl: fields[3] as String,
+      mood: fields[4] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, JournalEntry obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.title)
       ..writeByte(1)
@@ -35,7 +36,9 @@ class JournalEntryAdapter extends TypeAdapter<JournalEntry> {
       ..writeByte(2)
       ..write(obj.date)
       ..writeByte(3)
-      ..write(obj.imageUrl);
+      ..write(obj.imageUrl)
+      ..writeByte(4)
+      ..write(obj.mood);
   }
 
   @override

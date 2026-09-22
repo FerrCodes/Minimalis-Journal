@@ -95,7 +95,6 @@ class DetailScreen extends StatelessWidget {
                     ),
                   );
                   // Setelah edit, refresh halaman detail
-                  // (menggunakan StatefulBuilder atau cara lain)
                 },
               ),
             ),

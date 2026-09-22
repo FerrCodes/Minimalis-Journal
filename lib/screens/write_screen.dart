@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
 import '../models/journal_entry.dart';
 
 class WriteScreen extends StatefulWidget {
-  final JournalEntry? entry; // Null = tulis baru, ada isi = edit
+  final JournalEntry? entry;
 
   const WriteScreen({super.key, this.entry});
 
@@ -14,19 +15,30 @@ class WriteScreen extends StatefulWidget {
 class _WriteScreenState extends State<WriteScreen> {
   late TextEditingController _titleController;
   late TextEditingController _contentController;
+  String _selectedMood = 'Calm'; // <-- Mood default
 
   final Color bgColor = const Color(0xFF121212);
   final Color textPrimary = const Color(0xFFF2F2F7);
   final Color textSecondary = const Color(0xFF8E8E93);
+  final Color cardColor = const Color(0xFF1E1E1E);
+
+  // Daftar mood yang tersedia
+  final List<Map<String, dynamic>> _moods = [
+    {'icon': Icons.wb_sunny_outlined, 'label': 'Calm'},
+    {'icon': Icons.favorite_border, 'label': 'Grateful'},
+    {'icon': Icons.cloud_outlined, 'label': 'Peaceful'},
+    {'icon': Icons.eco_outlined, 'label': 'Focused'},
+  ];
 
   @override
   void initState() {
     super.initState();
-    // Kalau edit, isi controller dengan data lama. Kalau baru, kosongkan.
     _titleController = TextEditingController(text: widget.entry?.title ?? '');
     _contentController = TextEditingController(
       text: widget.entry?.content ?? '',
     );
+    // Kalau edit, pakai mood yang tersimpan
+    _selectedMood = widget.entry?.mood ?? 'Calm';
   }
 
   @override
@@ -68,22 +80,24 @@ class _WriteScreenState extends State<WriteScreen> {
               }
 
               final box = Hive.box<JournalEntry>('journalBox');
+              // Format tanggal otomatis: "Sep 22, 2026"
+              final today = DateFormat('MMM d, yyyy').format(DateTime.now());
 
               if (isEditing) {
-                // Update entry yang sudah ada
                 widget.entry!.title = _titleController.text.isEmpty
                     ? 'Untitled'
                     : _titleController.text;
                 widget.entry!.content = _contentController.text;
-                await widget.entry!.save(); // Simpan perubahan
+                widget.entry!.mood = _selectedMood; // <-- Update mood
+                await widget.entry!.save();
               } else {
-                // Buat entry baru
                 final newEntry = JournalEntry(
                   title: _titleController.text.isEmpty
                       ? 'Untitled'
                       : _titleController.text,
                   content: _contentController.text,
-                  date: 'Oct 25, 2023',
+                  date: today, // <-- Tanggal otomatis
+                  mood: _selectedMood, // <-- Mood yang dipilih
                   imageUrl:
                       'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?q=80&w=800&auto=format&fit=crop',
                 );
@@ -108,6 +122,61 @@ class _WriteScreenState extends State<WriteScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 8),
+
+            // === MOOD SELECTOR ===
+            Text(
+              'How are you feeling?',
+              style: TextStyle(
+                fontSize: 14,
+                color: textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: _moods.map((mood) {
+                final isSelected = _selectedMood == mood['label'];
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedMood = mood['label'];
+                    });
+                  },
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isSelected ? textPrimary : cardColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          mood['icon'],
+                          color: isSelected ? bgColor : textPrimary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        mood['label'],
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isSelected ? textPrimary : textSecondary,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+
+            // === JUDUL ===
             TextField(
               controller: _titleController,
               style: TextStyle(
@@ -126,6 +195,8 @@ class _WriteScreenState extends State<WriteScreen> {
               ),
             ),
             const SizedBox(height: 8),
+
+            // === ISI JURNAL ===
             Expanded(
               child: TextField(
                 controller: _contentController,
