@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Untuk status bar
+import 'package:flutter/services.dart';
 import 'screens/detail_screen.dart';
 import 'screens/write_screen.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -47,8 +47,25 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class ReflectScreen extends StatelessWidget {
+class ReflectScreen extends StatefulWidget {
   const ReflectScreen({super.key});
+
+  @override
+  State<ReflectScreen> createState() => _ReflectScreenState();
+}
+
+class _ReflectScreenState extends State<ReflectScreen> {
+  // State untuk pencarian & filter
+  String _searchQuery = '';
+  String? _selectedMoodFilter; // null = tampilkan semua
+
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   // Warna untuk dark mode
   final Color bgColor = const Color(0xFF121212);
@@ -83,6 +100,77 @@ class ReflectScreen extends StatelessWidget {
                         color: textPrimary,
                       ),
                     ),
+                    const SizedBox(height: 20),
+
+                    // === KOLOM PENCARIAN ===
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.search, color: textSecondary, size: 22),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              style: TextStyle(
+                                color: textPrimary,
+                                fontSize: 15,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Cari jurnal...',
+                                hintStyle: TextStyle(
+                                  color: textSecondary.withValues(alpha: 0.5),
+                                  fontSize: 15,
+                                ),
+                                border: InputBorder.none,
+                              ),
+                              onChanged: (value) {
+                                setState(() {
+                                  _searchQuery = value.toLowerCase();
+                                });
+                              },
+                            ),
+                          ),
+                          if (_searchQuery.isNotEmpty)
+                            GestureDetector(
+                              onTap: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _searchQuery = '';
+                                });
+                              },
+                              child: Icon(
+                                Icons.close,
+                                color: textSecondary,
+                                size: 20,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // === FILTER MOOD ===
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildFilterChip('Semua', null),
+                          const SizedBox(width: 8),
+                          _buildFilterChip('Calm', 'Calm'),
+                          const SizedBox(width: 8),
+                          _buildFilterChip('Grateful', 'Grateful'),
+                          const SizedBox(width: 8),
+                          _buildFilterChip('Peaceful', 'Peaceful'),
+                          const SizedBox(width: 8),
+                          _buildFilterChip('Focused', 'Focused'),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 30),
 
                     // Quote
@@ -95,27 +183,6 @@ class ReflectScreen extends StatelessWidget {
                         height: 1.5,
                         color: textPrimary.withValues(alpha: 0.8),
                       ),
-                    ),
-                    const SizedBox(height: 40),
-
-                    // Recent Moods
-                    Text(
-                      'Recent moods',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildMoodItem(Icons.wb_sunny_outlined, 'Calm'),
-                        _buildMoodItem(Icons.favorite_border, 'Grateful'),
-                        _buildMoodItem(Icons.cloud_outlined, 'Peaceful'),
-                        _buildMoodItem(Icons.eco_outlined, 'Focused'),
-                      ],
                     ),
                     const SizedBox(height: 40),
 
@@ -253,11 +320,67 @@ class ReflectScreen extends StatelessWidget {
           );
         }
 
-        // Tampilkan jurnal terbaru dulu (dibalik)
-        final entries = box.values.toList().reversed.toList();
+        // Ambil semua data, lalu filter
+        final allEntries = box.values.toList().reversed.toList();
+
+        final filteredEntries = allEntries.where((entry) {
+          // Filter berdasarkan mood
+          if (_selectedMoodFilter != null &&
+              entry.mood != _selectedMoodFilter) {
+            return false;
+          }
+          // Filter berdasarkan kata kunci
+          if (_searchQuery.isNotEmpty) {
+            final titleMatch = entry.title.toLowerCase().contains(_searchQuery);
+            final contentMatch = entry.content.toLowerCase().contains(
+              _searchQuery,
+            );
+            if (!titleMatch && !contentMatch) return false;
+          }
+          return true;
+        }).toList();
+
+        // Kalau hasil filter kosong, tampilkan pesan
+        if (filteredEntries.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.search_off,
+                  size: 48,
+                  color: textSecondary.withValues(alpha: 0.5),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Tidak ada hasil',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Coba kata kunci lain atau ubah filter mood.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
 
         return Column(
-          children: entries.map((entry) {
+          children: filteredEntries.map((entry) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 20),
               child: Dismissible(
@@ -464,27 +587,37 @@ class ReflectScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMoodItem(IconData icon, String label) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: cardColor,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
-              ),
-            ],
+  // === TAMBAHKAN METHOD INI ===
+  Widget _buildFilterChip(String label, String? moodValue) {
+    final isSelected = _selectedMoodFilter == moodValue;
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick(); // Getaran halus saat filter
+        setState(() {
+          _selectedMoodFilter = moodValue;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? textPrimary : cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? textPrimary
+                : textSecondary.withValues(alpha: 0.3),
+            width: 1,
           ),
-          child: Icon(icon, color: textPrimary, size: 24),
         ),
-        const SizedBox(height: 8),
-        Text(label, style: TextStyle(fontSize: 12, color: textSecondary)),
-      ],
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? bgColor : textSecondary,
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -87,14 +87,28 @@ class DetailScreen extends StatelessWidget {
               child: _buildCircleButton(
                 icon: Icons.edit_outlined,
                 onTap: () async {
-                  // Buka halaman edit
                   await Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => WriteScreen(entry: entry),
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          WriteScreen(entry: entry),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                            const begin = Offset(1.0, 0.0);
+                            const end = Offset.zero;
+                            const curve = Curves.easeInOutCubic;
+                            var tween = Tween(
+                              begin: begin,
+                              end: end,
+                            ).chain(CurveTween(curve: curve));
+                            return SlideTransition(
+                              position: animation.drive(tween),
+                              child: child,
+                            );
+                          },
+                      transitionDuration: const Duration(milliseconds: 350),
                     ),
                   );
-                  // Setelah edit, refresh halaman detail
                 },
               ),
             ),
