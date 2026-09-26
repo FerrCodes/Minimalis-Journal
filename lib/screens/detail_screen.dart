@@ -1,53 +1,77 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/journal_entry.dart';
 import 'write_screen.dart';
 
-class DetailScreen extends StatelessWidget {
+class DetailScreen extends StatefulWidget {
   final JournalEntry entry;
 
   const DetailScreen({super.key, required this.entry});
 
+  @override
+  State<DetailScreen> createState() => _DetailScreenState();
+}
+
+class _DetailScreenState extends State<DetailScreen> {
   final Color bgColor = const Color(0xFF121212);
   final Color textPrimary = const Color(0xFFF2F2F7);
   final Color textSecondary = const Color(0xFF8E8E93);
+  final Color cardColor = const Color(0xFF1E1E1E);
 
   @override
   Widget build(BuildContext context) {
+    final entry = widget.entry;
+
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
         child: Stack(
           children: [
+            // === LAPISAN 1: KONTEN ===
             SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(32),
-                      bottomRight: Radius.circular(32),
-                    ),
-                    child: Image.network(
-                      entry.imageUrl,
-                      height: 400,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                  // === 1. JUDUL & TANGGAL DI ATAS ===
                   Padding(
-                    padding: const EdgeInsets.all(24.0),
+                    padding: const EdgeInsets.fromLTRB(24, 80, 24, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          entry.date,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: textSecondary,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        // Tanggal + Badge Mood
+                        Row(
+                          children: [
+                            Text(
+                              entry.date,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: textSecondary.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                entry.mood,
+                                style: TextStyle(
+                                  color: textSecondary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
+                        // Judul
                         Text(
                           entry.title,
                           style: TextStyle(
@@ -57,22 +81,41 @@ class DetailScreen extends StatelessWidget {
                             height: 1.3,
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        Text(
-                          entry.content,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: textPrimary.withValues(alpha: 0.8),
-                            height: 1.6,
-                          ),
-                        ),
-                        const SizedBox(height: 50),
                       ],
+                    ),
+                  ),
+
+                  // === 2. GAMBAR DI TENGAH ===
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.network(
+                        entry.imageUrl,
+                        height: 300,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+
+                  // === 3. ISI JURNAL DI BAWAH GAMBAR ===
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 50),
+                    child: Text(
+                      entry.content,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: textPrimary.withValues(alpha: 0.8),
+                        height: 1.6,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+
+            // === LAPISAN 2: TOMBOL MELAYANG ===
             Positioned(
               top: 20,
               left: 20,
@@ -87,6 +130,7 @@ class DetailScreen extends StatelessWidget {
               child: _buildCircleButton(
                 icon: Icons.edit_outlined,
                 onTap: () async {
+                  // Buka halaman edit
                   await Navigator.push(
                     context,
                     PageRouteBuilder(
@@ -109,6 +153,10 @@ class DetailScreen extends StatelessWidget {
                       transitionDuration: const Duration(milliseconds: 350),
                     ),
                   );
+                  // Setelah edit selesai, refresh halaman detail
+                  if (mounted) {
+                    setState(() {}); // <-- INI YANG BIKIN AUTO-REFRESH
+                  }
                 },
               ),
             ),
@@ -123,11 +171,14 @@ class DetailScreen extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E).withValues(alpha: 0.9),
+          color: cardColor.withValues(alpha: 0.9),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
@@ -137,7 +188,7 @@ class DetailScreen extends StatelessWidget {
             ),
           ],
         ),
-        child: Icon(icon, color: const Color(0xFFF2F2F7), size: 20),
+        child: Icon(icon, color: textPrimary, size: 20),
       ),
     );
   }

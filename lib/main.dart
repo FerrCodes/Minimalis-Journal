@@ -4,6 +4,9 @@ import 'screens/detail_screen.dart';
 import 'screens/write_screen.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'models/journal_entry.dart';
+import 'screens/settings_screen.dart';
+import 'screens/stats_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +18,7 @@ void main() async {
 
   // Buka "box" untuk menyimpan data
   await Hive.openBox<JournalEntry>('journalBox');
+  await Hive.openBox('settingsBox'); // <-- TAMBAHKAN INI
   // Set status bar untuk dark mode (ikon putih)
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -42,7 +46,7 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
       ),
-      home: const ReflectScreen(),
+      home: const SplashScreen(),
     );
   }
 }
@@ -232,9 +236,15 @@ class _ReflectScreenState extends State<ReflectScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        Navigator.push(
+                          context,
+                          _slideRoute(const StatsScreen()),
+                        );
+                      },
                       icon: Icon(
-                        Icons.home_outlined,
+                        Icons.bar_chart_outlined,
                         color: textSecondary,
                         size: 26,
                       ),
@@ -263,7 +273,13 @@ class _ReflectScreenState extends State<ReflectScreen> {
                     ),
                     const SizedBox(width: 20),
                     IconButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        Navigator.push(
+                          context,
+                          _slideRoute(const SettingsScreen()),
+                        );
+                      },
                       icon: Icon(
                         Icons.settings_outlined,
                         color: textSecondary,
