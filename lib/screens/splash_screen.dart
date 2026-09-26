@@ -71,7 +71,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Minimal Journal',
+              'NoteNest',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
@@ -81,7 +81,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Reflect. Write. Grow.',
+              'A nest for your thoughts.',
               style: TextStyle(
                 fontSize: 13,
                 color: Color(0xFF8E8E93),

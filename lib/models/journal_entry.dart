@@ -19,11 +19,15 @@ class JournalEntry extends HiveObject {
   @HiveField(4)
   String mood;
 
+  @HiveField(5)
+  bool isFavorite;
+
   JournalEntry({
     required this.title,
     required this.content,
     required this.date,
     required this.imageUrl,
-    this.mood = 'Calm', // <-- Default mood
+    this.mood = 'Calm',
+    this.isFavorite = false,
   });
 }

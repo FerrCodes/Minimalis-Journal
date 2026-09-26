@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import '../models/journal_entry.dart';
+import '../utils/preset_images.dart';
 
 class WriteScreen extends StatefulWidget {
   final JournalEntry? entry;
@@ -15,14 +17,14 @@ class WriteScreen extends StatefulWidget {
 class _WriteScreenState extends State<WriteScreen> {
   late TextEditingController _titleController;
   late TextEditingController _contentController;
-  String _selectedMood = 'Calm'; // <-- Mood default
+  String _selectedMood = 'Calm';
+  late String _selectedImage;
 
   final Color bgColor = const Color(0xFF121212);
+  final Color cardColor = const Color(0xFF1E1E1E);
   final Color textPrimary = const Color(0xFFF2F2F7);
   final Color textSecondary = const Color(0xFF8E8E93);
-  final Color cardColor = const Color(0xFF1E1E1E);
 
-  // Daftar mood yang tersedia
   final List<Map<String, dynamic>> _moods = [
     {'icon': Icons.wb_sunny_outlined, 'label': 'Calm'},
     {'icon': Icons.favorite_border, 'label': 'Grateful'},
@@ -37,8 +39,8 @@ class _WriteScreenState extends State<WriteScreen> {
     _contentController = TextEditingController(
       text: widget.entry?.content ?? '',
     );
-    // Kalau edit, pakai mood yang tersimpan
     _selectedMood = widget.entry?.mood ?? 'Calm';
+    _selectedImage = widget.entry?.imageUrl ?? PresetImages.getDefault();
   }
 
   @override
@@ -73,6 +75,8 @@ class _WriteScreenState extends State<WriteScreen> {
         actions: [
           TextButton(
             onPressed: () async {
+              HapticFeedback.mediumImpact();
+
               if (_titleController.text.isEmpty &&
                   _contentController.text.isEmpty) {
                 Navigator.pop(context);
@@ -80,7 +84,6 @@ class _WriteScreenState extends State<WriteScreen> {
               }
 
               final box = Hive.box<JournalEntry>('journalBox');
-              // Format tanggal otomatis: "Sep 22, 2026"
               final today = DateFormat('MMM d, yyyy').format(DateTime.now());
 
               if (isEditing) {
@@ -88,7 +91,8 @@ class _WriteScreenState extends State<WriteScreen> {
                     ? 'Untitled'
                     : _titleController.text;
                 widget.entry!.content = _contentController.text;
-                widget.entry!.mood = _selectedMood; // <-- Update mood
+                widget.entry!.mood = _selectedMood;
+                widget.entry!.imageUrl = _selectedImage;
                 await widget.entry!.save();
               } else {
                 final newEntry = JournalEntry(
@@ -96,15 +100,17 @@ class _WriteScreenState extends State<WriteScreen> {
                       ? 'Untitled'
                       : _titleController.text,
                   content: _contentController.text,
-                  date: today, // <-- Tanggal otomatis
-                  mood: _selectedMood, // <-- Mood yang dipilih
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?q=80&w=800&auto=format&fit=crop',
+                  date: today,
+                  mood: _selectedMood,
+                  imageUrl: _selectedImage,
                 );
                 await box.add(newEntry);
               }
 
-              if (mounted) Navigator.pop(context);
+              if (mounted) {
+                HapticFeedback.lightImpact();
+                Navigator.pop(context);
+              }
             },
             child: Text(
               isEditing ? 'Update' : 'Save',
@@ -124,6 +130,74 @@ class _WriteScreenState extends State<WriteScreen> {
           children: [
             const SizedBox(height: 8),
 
+            // === PILIHAN GAMBAR ===
+            Text(
+              'Pilih gambar',
+              style: TextStyle(
+                fontSize: 14,
+                color: textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 80,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: PresetImages.images.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  final img = PresetImages.images[index];
+                  final isSelected = _selectedImage == img['url'];
+                  return GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        _selectedImage = img['url']!;
+                      });
+                    },
+                    child: Container(
+                      width: 80,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected ? textPrimary : Colors.transparent,
+                          width: 3,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(13),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.network(
+                              img['url']!,
+                              fit: BoxFit.cover,
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(color: cardColor);
+                                  },
+                            ),
+                            if (isSelected)
+                              Container(
+                                color: Colors.black.withValues(alpha: 0.3),
+                                child: const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // === MOOD SELECTOR ===
             Text(
               'How are you feeling?',
@@ -140,6 +214,7 @@ class _WriteScreenState extends State<WriteScreen> {
                 final isSelected = _selectedMood == mood['label'];
                 return GestureDetector(
                   onTap: () {
+                    HapticFeedback.selectionClick();
                     setState(() {
                       _selectedMood = mood['label'];
                     });

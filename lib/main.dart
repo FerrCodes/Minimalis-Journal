@@ -165,6 +165,8 @@ class _ReflectScreenState extends State<ReflectScreen> {
                         children: [
                           _buildFilterChip('Semua', null),
                           const SizedBox(width: 8),
+                          _buildFilterChip('Favorit', 'FAVORITE'),
+                          const SizedBox(width: 8),
                           _buildFilterChip('Calm', 'Calm'),
                           const SizedBox(width: 8),
                           _buildFilterChip('Grateful', 'Grateful'),
@@ -340,10 +342,15 @@ class _ReflectScreenState extends State<ReflectScreen> {
         final allEntries = box.values.toList().reversed.toList();
 
         final filteredEntries = allEntries.where((entry) {
-          // Filter berdasarkan mood
-          if (_selectedMoodFilter != null &&
-              entry.mood != _selectedMoodFilter) {
-            return false;
+          // Filter berdasarkan mood atau favorit
+          if (_selectedMoodFilter != null) {
+            if (_selectedMoodFilter == 'FAVORITE') {
+              // Filter favorit
+              if (!entry.isFavorite) return false;
+            } else {
+              // Filter mood biasa
+              if (entry.mood != _selectedMoodFilter) return false;
+            }
           }
           // Filter berdasarkan kata kunci
           if (_searchQuery.isNotEmpty) {
@@ -357,7 +364,10 @@ class _ReflectScreenState extends State<ReflectScreen> {
         }).toList();
 
         // Kalau hasil filter kosong, tampilkan pesan
+        // Kalau hasil filter kosong, tampilkan pesan
         if (filteredEntries.isEmpty) {
+          // Pesan khusus untuk filter favorit
+          final isEmptyFavorite = _selectedMoodFilter == 'FAVORITE';
           return Container(
             padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
             decoration: BoxDecoration(
@@ -367,13 +377,13 @@ class _ReflectScreenState extends State<ReflectScreen> {
             child: Column(
               children: [
                 Icon(
-                  Icons.search_off,
+                  isEmptyFavorite ? Icons.bookmark_border : Icons.search_off,
                   size: 48,
                   color: textSecondary.withValues(alpha: 0.5),
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Tidak ada hasil',
+                  isEmptyFavorite ? 'Belum ada favorit' : 'Tidak ada hasil',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -382,7 +392,9 @@ class _ReflectScreenState extends State<ReflectScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Coba kata kunci lain atau ubah filter mood.',
+                  isEmptyFavorite
+                      ? 'Tap ikon bookmark di jurnal\nuntuk menandainya sebagai favorit.'
+                      : 'Coba kata kunci lain atau ubah filter mood.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
@@ -567,10 +579,23 @@ class _ReflectScreenState extends State<ReflectScreen> {
                           ),
                         ],
                       ),
-                      Icon(
-                        Icons.bookmark_border,
-                        size: 20,
-                        color: textSecondary,
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() {
+                            entry.isFavorite = !entry.isFavorite;
+                            entry.save();
+                          });
+                        },
+                        child: Icon(
+                          entry.isFavorite
+                              ? Icons.bookmark
+                              : Icons.bookmark_border,
+                          size: 20,
+                          color: entry.isFavorite
+                              ? const Color(0xFFFFD60A) // Kuning keemasan
+                              : textSecondary,
+                        ),
                       ),
                     ],
                   ),
